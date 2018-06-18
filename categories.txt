@@ -1,0 +1,23 @@
+#category_number,category name
+1,Entertainment
+2,Relationships
+3,Culture 
+4,Health 
+5,Computers 
+6,Science
+7,Education
+8,Politics
+9,Business 
+10,Style 
+11,Sports 
+12,Parenting 
+13,Recreation 
+14,Electronics 
+15,Arts
+16,Foods
+17,Transportation 
+18,Pets 
+19,Travel 
+20,Home
+21,Social
+22,Other
