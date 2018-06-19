@@ -1,9 +1,32 @@
 import re
 import string
+import pickle
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
+from pattern.en import suggest
+
+def load_preprocessed_data(train_path, test_path):
+    return pickle.load(open(train_path, 'rb')), pickle.load(open(test_path, 'rb'))
+
+def save_preprocessed_data(data, path):
+    pickle.dump(data, open(path, 'wb'))
+
+def subsampling(data, max_lines=100):
+    data['subject'] = data['subject'][:max_lines]
+    data['content'] = data['content'][:max_lines]
+    if 'category' in data:
+        data['category'] = data['category'][:max_lines]
+
+def correct_spelling(data):
+    data['subject'] = [[suggest(y)[0][0] for y in x] for x in data['subject']]
+    data['content'] = [[suggest(y)[0][0] for y in x] for x in data['content']]
+
+def reduce_lengthening(data):
+    pattern = re.compile(r"(.)\1{2,}")
+    data['subject'] = [[pattern.sub(r"\1\1", y) for y in x] for x in data['subject']]
+    data['content'] = [[pattern.sub(r"\1\1", y) for y in x] for x in data['content']]
 
 def remove_non_letters(data):
     regex = re.compile('[^a-zA-Z ]')
