@@ -7,6 +7,11 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from pattern.en import suggest
 
+stopwords_set = set(stopwords.words('english'))
+letters_regex = re.compile('[^a-zA-Z ]')
+length_regex = re.compile(r"(.)\1{2,}")
+ps = PorterStemmer()
+
 def load_preprocessed_data(train_path, test_path):
     return pickle.load(open(train_path, 'rb')), pickle.load(open(test_path, 'rb'))
 
@@ -20,28 +25,24 @@ def subsampling(data, max_lines=100):
         data['category'] = data['category'][:max_lines]
 
 def correct_spelling(data):
-    data['subject'] = [[suggest(y)[0][0] for y in x] for x in data['subject']]
-    data['content'] = [[suggest(y)[0][0] for y in x] for x in data['content']]
+    data['subject'] = [[_suggest_aux(y) for y in x] for x in data['subject']]
+    data['content'] = [[_suggest_aux(y) for y in x] for x in data['content']]
 
 def reduce_lengthening(data):
-    pattern = re.compile(r"(.)\1{2,}")
-    data['subject'] = [[pattern.sub(r"\1\1", y) for y in x] for x in data['subject']]
-    data['content'] = [[pattern.sub(r"\1\1", y) for y in x] for x in data['content']]
+    data['subject'] = [[length_regex.sub(r"\1\1", y) for y in x] for x in data['subject']]
+    data['content'] = [[length_regex.sub(r"\1\1", y) for y in x] for x in data['content']]
 
 def remove_non_letters(data):
-    regex = re.compile('[^a-zA-Z ]')
-    data['subject'] = [regex.sub(' ', x) for x in data['subject']]
-    data['content'] = [regex.sub(' ', x) for x in data['content']]
+    data['subject'] = [letters_regex.sub(' ', x) for x in data['subject']]
+    data['content'] = [letters_regex.sub(' ', x) for x in data['content']]
 
 def remove_stopwords(data):
-    stopwords_set = set(stopwords.words('english'))
     data['subject'] = [[y if y not in stopwords_set else '' for y in x] for x in data['subject']]
     data['subject'] = [filter(None, x) for x in data['subject']]
     data['content'] = [[y if y not in stopwords_set else '' for y in x] for x in data['content']]
     data['content'] = [filter(None, x) for x in data['content']]
 
 def stemming(data):
-    ps = PorterStemmer()
     data['subject'] = [[str(ps.stem(y)) for y in x] for x in data['subject']]
     data['content'] = [[str(ps.stem(y)) for y in x] for x in data['content']]
 
@@ -103,3 +104,9 @@ def get_train_test(train_input, test_input):
         m = re.search(maincat_regex, line)
     test = {'subject': subjects, 'content': contents}
     return train, test
+
+def _suggest_aux(text, threshold=0.9):
+    suggestions = suggest(text)
+    if suggestions[0][1] > threshold:
+        return suggestions[0][0]
+    return text
