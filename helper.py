@@ -1,22 +1,39 @@
 import re
 import string
-import pickle
+
+import pandas as pd
+import pickle as pq
 
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 from pattern.en import suggest
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
+from numpy import array
+from numpy import argmax
 
 stopwords_set = set(stopwords.words('english'))
 letters_regex = re.compile('[^a-zA-Z ]')
 length_regex = re.compile(r"(.)\1{2,}")
 ps = PorterStemmer()
 
+def get_label_encoder(classes):
+    return LabelEncoder().fit([_class.strip() for _class in classes])
+
+def get_train_test(train_data, test_data, label_encoder):
+    integer_encoded = label_encoder.transform(train_data['category'])
+    onehot_encoder = OneHotEncoder(sparse=False)
+    integer_encoded = integer_encoded.reshape(len(integer_encoded), 1)
+    return [' '.join(subject + content) for subject, content in zip(train_data['subject'], train_data['content'])], \
+        onehot_encoder.fit_transform(integer_encoded), \
+        [' '.join(subject + content) for subject, content in zip(test_data['subject'], test_data['content'])]
+
 def load_preprocessed_data(train_path, test_path):
-    return pickle.load(open(train_path, 'rb')), pickle.load(open(test_path, 'rb'))
+    return pq.load(open(train_path, 'rb')), pq.load(open(test_path, 'rb'))
 
 def save_preprocessed_data(data, path):
-    pickle.dump(data, open(path, 'wb'))
+    pq.dump(data, open(path, 'wb'))
 
 def subsampling(data, max_lines=100):
     data['subject'] = data['subject'][:max_lines]
@@ -58,7 +75,11 @@ def lowercase(data):
     data['subject'] = [x.lower() for x in data['subject']]
     data['content'] = [x.lower() for x in data['content']]
 
-def get_train_test(train_input, test_input):
+def get_categories(categories_input):
+    df = pd.read_csv(categories_input)
+    return df['category name'].values
+
+def get_train_test_data(train_input, test_input):
     subject_regex = '\<subject\>(.+)\<\/subject\>'
     content_regex = '\<content\>(.+)\<\/content\>'
     maincat_regex = '\<maincat\>(.+)\<\/maincat\>'
